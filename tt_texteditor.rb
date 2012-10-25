@@ -92,7 +92,7 @@ module TT_Writer
       w = TT::GUI::ToolWindow.new( props )
       w.theme = TT::GUI::Window::THEME_GRAPHITE
 
-      eInputChange = DeferredEvent.new { |value| input_changed( value ) }
+      eInputChange = TT::DeferredEvent.new { |value| input_changed( value ) }
       txtInput = TT::GUI::Textbox.new( @text )
       txtInput.multiline = true
       txtInput.top = 5
@@ -104,7 +104,7 @@ module TT_Writer
       }
       w.add_control( txtInput )
 
-      eSizeChange = DeferredEvent.new { |value| input_changed( nil ) }
+      eSizeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
       txtSize = TT::GUI::Textbox.new( @size.to_s )
       txtSize.top = 130
       txtSize.left = 35
@@ -120,7 +120,7 @@ module TT_Writer
       lblSize.left = 5
       w.add_control( lblSize )
 
-      eExtrudeChange = DeferredEvent.new { |value| input_changed( nil ) }
+      eExtrudeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
       txtExtrude = TT::GUI::Textbox.new( @extrude.to_s )
       txtExtrude.top = 130
       txtExtrude.left = 155
@@ -161,6 +161,7 @@ module TT_Writer
         'Center',
         'Right'
       ] )
+      list.value = @align
       list.add_event_handler( :change ) { |control, value|
         #puts control.value
         #puts value
@@ -183,10 +184,12 @@ module TT_Writer
       btnClose.right = 5
       btnClose.bottom = 5
       w.add_control( btnClose )
+      
+      w.on_ready { |window|
+        input_changed( @text )
+      }
 
       w.show_window
-
-      TT.defer { input_changed( @text ) }
 
       @window = w
     end
@@ -234,28 +237,6 @@ module TT_Writer
     end
 
   end # class
-
-  # (!) Move to TT_Lib
-  class DeferredEvent
-    
-    def initialize( delay = 0.2, &block )
-      @proc = block
-      @delay = delay
-      @last_value = nil
-      @timer = nil
-    end
-    
-    def call( value )
-      return false if value == @last_value
-      UI.stop_timer( @timer ) if @timer
-      @timer = UI.start_timer( @delay, false ) {
-        UI.stop_timer( @timer ) # Ensure it only runs once.
-        @proc.call( value )
-      }
-      true
-    end
-    
-  end # class DeferredEvent
 
 end # module
 
