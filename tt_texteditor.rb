@@ -25,12 +25,14 @@ module TT_Writer
       @group = nil
       @ip = Sketchup::InputPoint.new
 
-      @text = "Hello World\nFoo\nBasecamp"
-      @bold   = false
-      @italic = false
-      @size   = 1.m
-      @extrude = 0.m
-      @align  = 'Left'
+      @text      = "Hello World\nFoo\nBasecamp"
+      @font      = 'Arial'
+      @style     = 'Normal'
+      @size      = 1.m
+      @filled    = true
+      @extruded  = true
+      @extrusion = 0.m
+      @align     = 'Left'
 
       if instance
         @group = instance
@@ -39,13 +41,6 @@ module TT_Writer
         instance.model.start_operation( 'Edit 3D Text' )
         open_ui()
       end
-
-      #puts @text
-      #puts @bold
-      #puts @italic
-      #puts @size
-      #puts @extrude
-      #puts @align
     end
 
     def resume( view )
@@ -84,107 +79,168 @@ module TT_Writer
 
     def open_ui
       props = {
-        :dialog_title => 'Text Editor',
-        :width => 216,
+        :dialog_title => '3D Text Editor',
+        :width => 316,
         :height => 280,
         :resizable => false
       }
       w = TT::GUI::ToolWindow.new( props )
       w.theme = TT::GUI::Window::THEME_GRAPHITE
 
+      # Text input
       eInputChange = TT::DeferredEvent.new { |value| input_changed( value ) }
       txtInput = TT::GUI::Textbox.new( @text )
       txtInput.multiline = true
       txtInput.top = 5
       txtInput.left = 5
-      txtInput.width = 200
-      txtInput.height = 100
+      txtInput.width = 300
+      txtInput.height = 140
       txtInput.add_event_handler( :textchange ) { |control|
         eInputChange.call( control.value )
       }
       w.add_control( txtInput )
-
-      eSizeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
-      txtSize = TT::GUI::Textbox.new( @size.to_s )
-      txtSize.top = 130
-      txtSize.left = 35
-      txtSize.width = 50
-      txtSize.add_event_handler( :textchange ) { |control|
-        eSizeChange.call( control.value )
-      }
-      w.add_control( txtSize )
-      @tHeight = txtSize
-
-      lblSize = TT::GUI::Label.new( 'Size:', txtSize )
-      lblSize.top = 130
-      lblSize.left = 5
-      w.add_control( lblSize )
-
-      eExtrudeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
-      txtExtrude = TT::GUI::Textbox.new( @extrude.to_s )
-      txtExtrude.top = 130
-      txtExtrude.left = 155
-      txtExtrude.width = 50
-      txtExtrude.add_event_handler( :textchange ) { |control|
-        eExtrudeChange.call( control.value )
-      }
-      w.add_control( txtExtrude )
-      @tExtrude = txtExtrude
-
-      lblExtrude = TT::GUI::Label.new( 'Extrude:', txtExtrude )
-      lblExtrude.top = 130
-      lblExtrude.left = 110
-      w.add_control( lblExtrude )
-
-      chkBold = TT::GUI::Checkbox.new( 'Bold' )
-      chkBold.move( 5, 155 )
-      chkBold.checked = @bold
-      w.add_control( chkBold )
-      chkBold.add_event_handler( :change ) { |control|
-        #puts 'bold change event'
+      
+      # Container for font properties
+      container = TT::GUI::Container.new
+      container.move( 5, 150 )
+      container.width  = 300
+      container.height = 75
+      w.add_control( container )
+      
+      # Font List
+      lstFont = TT::GUI::Listbox.new( [
+        'Arial',
+        'Tahoma',
+        'Verdana',
+        'Wingdings'
+      ] )
+      lstFont.value = @font
+      lstFont.add_event_handler( :change ) { |control, value|
+        # (!) Control.value isn't updated - this must change.
+        @font = value
         input_changed( nil )
       }
-      @cBold = chkBold
-
-      chkItalic = TT::GUI::Checkbox.new( 'Italic' )
-      chkItalic.move( 50, 155 )
-      chkItalic.checked = @italic
-      chkItalic.add_event_handler( :change ) { |control|
-        #puts 'italic change event'
+      lstFont.move( 35, 0 )
+      lstFont.width = 180
+      container.add_control( lstFont )
+      @dbFont = lstFont
+      
+      lblFont = TT::GUI::Label.new( 'Font:', lstFont )
+      lblFont.top = 0
+      lblFont.right = 270
+      container.add_control( lblFont )
+      
+      # Font Style
+      lstStyle = TT::GUI::Listbox.new( [
+        'Normal',
+        'Bold',
+        'Italic',
+        'Bold Italic'
+      ] )
+      lstStyle.value = @style
+      lstStyle.add_event_handler( :change ) { |control, value|
+        @style = value
         input_changed( nil )
       }
-      w.add_control( chkItalic )
-      @cItalic = chkItalic
-
-      list = TT::GUI::Listbox.new( [
+      lstStyle.top = 0
+      lstStyle.right = 0
+      lstStyle.width = 80
+      container.add_control( lstStyle )
+      @dbStyle = lstStyle
+      
+      # Text Alignment
+      lstAlign = TT::GUI::Listbox.new( [
         'Left',
         'Center',
         'Right'
       ] )
-      list.value = @align
-      list.add_event_handler( :change ) { |control, value|
+      lstAlign.value = @align
+      lstAlign.add_event_handler( :change ) { |control, value|
         #puts control.value
         #puts value
         @align = value
         input_changed( nil )
       }
-      list.move( 5, 185 )
-      list.width = 200
-      w.add_control( list )
-      @dbAlign = list
+      lstAlign.move( 35, 25 )
+      lstAlign.width = 80
+      container.add_control( lstAlign )
+      @dbAlign = lstAlign
+      
+      lblFont = TT::GUI::Label.new( 'Align:', lstAlign )
+      lblFont.top = 25
+      lblFont.right = 270
+      container.add_control( lblFont )
 
+      # Text size
+      eSizeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
+      txtSize = TT::GUI::Textbox.new( @size.to_s )
+      txtSize.top = 25
+      txtSize.right = 0
+      txtSize.width = 80
+      txtSize.add_event_handler( :textchange ) { |control|
+        eSizeChange.call( control.value )
+      }
+      container.add_control( txtSize )
+      @tHeight = txtSize
+
+      lblSize = TT::GUI::Label.new( 'Height:', txtSize )
+      lblSize.top = 25
+      lblSize.right = 85
+      container.add_control( lblSize )
+
+      # Extrude Height
+      eExtrudeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
+      txtExtrude = TT::GUI::Textbox.new( @extrusion.to_s )
+      txtExtrude.top = 50
+      txtExtrude.right = 0
+      txtExtrude.width = 80
+      txtExtrude.add_event_handler( :textchange ) { |control|
+        eExtrudeChange.call( control.value )
+      }
+      container.add_control( txtExtrude )
+      @tExtrusion = txtExtrude
+      
+      # Form
+      lblForm = TT::GUI::Label.new( 'Form:' )
+      lblForm.top = 50
+      lblForm.right = 270
+      container.add_control( lblForm )
+      
+      # Extrude
+      chkExtrude = TT::GUI::Checkbox.new( 'Extrude:' )
+      chkExtrude.top = 50
+      chkExtrude.right = 85
+      chkExtrude.checked = @extruded
+      chkExtrude.add_event_handler( :change ) { |control|
+        input_changed( nil )
+      }
+      container.add_control( chkExtrude )
+      @cExtrude = chkExtrude
+      
+      # Filled
+      chkFilled = TT::GUI::Checkbox.new( 'Filled' )
+      chkFilled.top = 50
+      chkFilled.left = 35
+      chkFilled.checked = @filled
+      chkFilled.add_event_handler( :change ) { |control|
+        input_changed( nil )
+      }
+      container.add_control( chkFilled )
+      @cFilled = chkFilled
+
+      # Close Button
       btnClose = TT::GUI::Button.new( 'Close' ) { |control|
-        #puts 'close'
         control.window.close
         model = Sketchup.active_model
         model.commit_operation
         model.select_tool( nil )
       }
-      btnClose.size( 75, 28 )
+      btnClose.size( 75, 25 )
       btnClose.right = 5
       btnClose.bottom = 5
       w.add_control( btnClose )
       
+      # Hook up events.
       w.on_ready { |window|
         input_changed( @text )
       }
@@ -201,39 +257,52 @@ module TT_Writer
 
       @group.entities.clear!
       
-      @bold   = @cBold.checked
-      @italic = @cItalic.checked
-      @size   = @tHeight.value.to_l
-      @extrude= @tExtrude.value.to_l
+      @font      = @dbFont.value
+      @style     = @dbStyle.value
+      bold       = @dbStyle.value.include?( 'Bold' )
+      italic     = @dbStyle.value.include?( 'Italic' )
+      @size      = @tHeight.value.to_l
+      @filled    = @cFilled.checked
+      @extruded  = @cExtrude.checked
+      @extrusion = @tExtrusion.value.to_l
+      extrusion  = ( @extruded ) ? @extrusion : 0.0
+      tolerance = 0
+      z = 0
 
-      if @align == 'Left'
-        align = TextAlignLeft
-      elsif @align == 'Center'
-        align = TextAlignCenter
-      elsif @align == 'Right'
-        align = TextAlignRight
-      end
+      align = case @align
+        when 'Left':    TextAlignLeft
+        when 'Center':  TextAlignCenter
+        when 'Right':   TextAlignRight
+      end # (?) Map to Hash?
 
-      @group.entities.add_3d_text( @text, align, 'Arial', @bold, @italic, @size, 0, 0, true, @extrude )
+      @group.entities.add_3d_text(
+        @text,
+        align, @font, bold, italic, @size,
+        tolerance, z, @filled, extrusion
+      )
       write_properties( @group )
     end
     
     def write_properties( entity )
-      entity.set_attribute( 'TT_Editor', 'Text',    @text )
-      entity.set_attribute( 'TT_Editor', 'Bold',    @bold )
-      entity.set_attribute( 'TT_Editor', 'Italic',  @italic )
-      entity.set_attribute( 'TT_Editor', 'Size',    @size )
-      entity.set_attribute( 'TT_Editor', 'Extrude', @extrude )
-      entity.set_attribute( 'TT_Editor', 'Align',   @align )
+      entity.set_attribute( 'TT_Editor', 'Text',      @text )
+      entity.set_attribute( 'TT_Editor', 'Font',      @font )
+      entity.set_attribute( 'TT_Editor', 'Style',     @style )
+      entity.set_attribute( 'TT_Editor', 'Size',      @size )
+      entity.set_attribute( 'TT_Editor', 'Filled',    @filled )
+      entity.set_attribute( 'TT_Editor', 'Extruded',  @extruded )
+      entity.set_attribute( 'TT_Editor', 'Extrusion', @extrusion )
+      entity.set_attribute( 'TT_Editor', 'Align',     @align )
     end
 
     def read_properties( entity )
-      @text   = entity.get_attribute( 'TT_Editor', 'Text',    'Hello World' )
-      @bold   = entity.get_attribute( 'TT_Editor', 'Bold',    false )
-      @italic = entity.get_attribute( 'TT_Editor', 'Italic',  false )
-      @size   = entity.get_attribute( 'TT_Editor', 'Size', 	  1.m ).to_l
-      @extrude= entity.get_attribute( 'TT_Editor', 'Extrude', 0.m ).to_l
-      @align  = entity.get_attribute( 'TT_Editor', 'Align',   'Left' )
+      @text      = entity.get_attribute( 'TT_Editor', 'Text',      'Hello World' )
+      @font      = entity.get_attribute( 'TT_Editor', 'Font',      'Arial' )
+      @style     = entity.get_attribute( 'TT_Editor', 'Style',     'Normal' )
+      @size      = entity.get_attribute( 'TT_Editor', 'Size', 	   1.m ).to_l
+      @filled    = entity.get_attribute( 'TT_Editor', 'Filled',    true )
+      @extruded  = entity.get_attribute( 'TT_Editor', 'Extruded',  true )
+      @extrusion = entity.get_attribute( 'TT_Editor', 'Extrusion', 0.m ).to_l
+      @align     = entity.get_attribute( 'TT_Editor', 'Align',     'Left' )
     end
 
   end # class
