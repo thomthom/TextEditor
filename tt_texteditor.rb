@@ -1,25 +1,91 @@
-module TT_Writer
+#-------------------------------------------------------------------------------
+#
+# Thomas Thomassen
+# thomas[at]thomthom[dot]net
+#
+#-------------------------------------------------------------------------------
 
+require 'sketchup.rb'
+begin
+  require 'TT_Lib2/core.rb'
+rescue LoadError => e
+  timer = UI.start_timer( 0, false ) {
+    UI.stop_timer( timer )
+    filename = File.basename( __FILE__ )
+    message = "#{filename} require TT_Lib² to be installed.\n"
+    message << "\n"
+    message << "Would you like to open a webpage where you can download TT_Lib²?"
+    result = UI.messagebox( message, MB_YESNO )
+    if result == 6 # YES
+      UI.openURL( 'http://www.thomthom.net/software/tt_lib2/' )
+    end
+  }
+end
+
+
+#-------------------------------------------------------------------------------
+
+if defined?( TT::Lib ) && TT::Lib.compatible?( '2.7.0', '3D Text Editor' )
+
+module TT::Plugins::Editor3dText
+
+  ### CONSTANTS ### ------------------------------------------------------------
+  
+  # Plugin information
+  PLUGIN_ID       = 'TT_Editor3dText'.freeze
+  PLUGIN_NAME     = '3D Text Editor'.freeze
+  PLUGIN_VERSION  = TT::Version.new(1,0,0).freeze
+  
+  # Version information
+  RELEASE_DATE    = '29 Oct 12'.freeze
+  
+  # Resource paths
+  PATH_ROOT   = File.dirname( __FILE__ ).freeze
+  
+  
+  ### MENU & TOOLBARS ### ------------------------------------------------------
+  
   unless file_loaded?( __FILE__ )
     # Menus
     m = UI.menu( 'Draw' )
     m.add_item( 'Editable 3d Text' ) { self.writer_tool }
-
+    
+    # Context menu
     UI.add_context_menu_handler { |context_menu|
       instance = Sketchup.active_model.selection.find { |e| TT::Instance.is?(e) }
       context_menu.add_item( 'Edit Text' ) {
         Sketchup.active_model.select_tool( TextEditorTool.new( instance ) )
       } if instance
     }
+  end 
+  
+  
+  ### LIB FREDO UPDATER ### ----------------------------------------------------
+  
+  def self.register_plugin_for_LibFredo6
+    {   
+      :name => PLUGIN_NAME,
+      :author => 'thomthom',
+      :version => PLUGIN_VERSION.to_s,
+      :date => RELEASE_DATE,   
+      :description => 'Editable 3D text with live preview.',
+      :link_info => 'http://forums.sketchucation.com/viewtopic.php?f=0&t=0'
+    }
   end
+  
+  
+  ### MAIN SCRIPT ### ----------------------------------------------------------
 
+  # @since 1.0 0
   def self.writer_tool
     Sketchup.active_model.select_tool( TextEditorTool.new )
   end
 
-
+  
+  # @since 1.0 0
   class TextEditorTool
 
+    # @since 1.0 0
     def initialize( instance = nil )
       @origin = nil
       @group = nil
@@ -43,14 +109,26 @@ module TT_Writer
       end
     end
 
+    # @param [Sketchup::View] view
+    # 
+    # @since 1.0 0
     def resume( view )
       view.invalidate
     end
 
+    # @param [Sketchup::View] view
+    # 
+    # @since 1.0 0
     def deactivate( view )
       view.invalidate
     end
 
+    # @param [Integer] flags
+    # @param [Integer] x
+    # @param [Integer] y
+    # @param [Sketchup::View] view
+    # 
+    # @since 1.0 0
     def onLButtonUp( flags, x, y, view )
       @ip.pick( view, x, y )
       if @origin.nil?
@@ -65,10 +143,19 @@ module TT_Writer
       view.invalidate
     end
 
+    # @param [Integer] flags
+    # @param [Integer] x
+    # @param [Integer] y
+    # @param [Sketchup::View] view
+    # 
+    # @since 1.0 0
     def onMouseMove( flags, x, y, view )
       view.invalidate
     end
 
+    # @param [Sketchup::View] view
+    # 
+    # @since 1.0 0
     def draw( view )
       if @origin
         view.draw_points( [@origin], 10, 4, 'red' )
@@ -77,6 +164,8 @@ module TT_Writer
 
     private
 
+    # @return [TT::GUI::Window]
+    # @since 1.0 0
     def open_ui
       props = {
         :dialog_title => '3D Text Editor',
@@ -306,7 +395,40 @@ module TT_Writer
     end
 
   end # class
+  
+  
+  ### DEBUG ### ----------------------------------------------------------------
+  
+  # @note Debug method to reload the plugin.
+  #
+  # @example
+  #   TT::Plugins::Template.reload
+  #
+  # @param [Boolean] tt_lib
+  #
+  # @return [Integer]
+  # @since 1.0.0
+  def self.reload( tt_lib = false )
+    original_verbose = $VERBOSE
+    $VERBOSE = nil
+    TT::Lib.reload if tt_lib
+    # Core file (this)
+    load __FILE__
+    # Supporting files
+    x = Dir.glob( File.join(PATH, '*.{rb,rbs}') ).each { |file|
+      load file
+    }
+    x.length
+  ensure
+    $VERBOSE = original_verbose
+  end
 
 end # module
 
+end # if TT_Lib
+
+#-------------------------------------------------------------------------------
+
 file_loaded( __FILE__ )
+
+#-------------------------------------------------------------------------------
