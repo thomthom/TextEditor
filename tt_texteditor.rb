@@ -324,9 +324,6 @@ module TT::Plugins::Editor3dText
       # Close Button
       btnClose = TT::GUI::Button.new( 'Close' ) { |control|
         control.window.close
-        model = Sketchup.active_model
-        model.commit_operation
-        model.select_tool( nil )
       }
       btnClose.size( 75, 25 )
       btnClose.right = 5
@@ -337,12 +334,23 @@ module TT::Plugins::Editor3dText
       w.on_ready { |window|
         input_changed( @text )
       }
+      w.set_on_close {
+        on_window_close()
+      }
 
       w.show_window
 
       @window = w
     end
+    
+    # @since 1.0 0
+    def on_window_close
+      model = Sketchup.active_model
+      model.commit_operation
+      model.select_tool( nil )
+    end
 
+    # @since 1.0 0
     def input_changed( value )
       #puts 'input_changed'
 
@@ -376,6 +384,7 @@ module TT::Plugins::Editor3dText
       write_properties( @group )
     end
     
+    # @since 1.0 0
     def write_properties( entity )
       entity.set_attribute( 'TT_Editor', 'Text',      @text )
       entity.set_attribute( 'TT_Editor', 'Font',      @font )
@@ -387,6 +396,7 @@ module TT::Plugins::Editor3dText
       entity.set_attribute( 'TT_Editor', 'Align',     @align )
     end
 
+    # @since 1.0 0
     def read_properties( entity )
       @text      = entity.get_attribute( 'TT_Editor', 'Text',      'Hello World' )
       @font      = entity.get_attribute( 'TT_Editor', 'Font',      'Arial' )
