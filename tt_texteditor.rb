@@ -179,6 +179,7 @@ module TT::Plugins::Editor3dText
       # Text input
       eInputChange = TT::DeferredEvent.new { |value| input_changed( value ) }
       txtInput = TT::GUI::Textbox.new( @text )
+      txtInput.name = :txt_input
       txtInput.multiline = true
       txtInput.top = 5
       txtInput.left = 5
@@ -203,6 +204,7 @@ module TT::Plugins::Editor3dText
         'Verdana',
         'Wingdings'
       ] )
+      lstFont.name = :lst_font
       lstFont.value = @font
       lstFont.add_event_handler( :change ) { |control, value|
         # (!) Control.value isn't updated - this must change.
@@ -212,7 +214,6 @@ module TT::Plugins::Editor3dText
       lstFont.move( 35, 0 )
       lstFont.width = 180
       container.add_control( lstFont )
-      @dbFont = lstFont
       
       lblFont = TT::GUI::Label.new( 'Font:', lstFont )
       lblFont.top = 0
@@ -226,6 +227,7 @@ module TT::Plugins::Editor3dText
         'Italic',
         'Bold Italic'
       ] )
+      lstStyle.name = :lst_style
       lstStyle.value = @style
       lstStyle.add_event_handler( :change ) { |control, value|
         @style = value
@@ -235,7 +237,6 @@ module TT::Plugins::Editor3dText
       lstStyle.right = 0
       lstStyle.width = 80
       container.add_control( lstStyle )
-      @dbStyle = lstStyle
       
       # Text Alignment
       lstAlign = TT::GUI::Listbox.new( [
@@ -243,6 +244,7 @@ module TT::Plugins::Editor3dText
         'Center',
         'Right'
       ] )
+      lstAlign.name = :lst_align
       lstAlign.value = @align
       lstAlign.add_event_handler( :change ) { |control, value|
         #puts control.value
@@ -253,7 +255,6 @@ module TT::Plugins::Editor3dText
       lstAlign.move( 35, 25 )
       lstAlign.width = 80
       container.add_control( lstAlign )
-      @dbAlign = lstAlign
       
       lblFont = TT::GUI::Label.new( 'Align:', lstAlign )
       lblFont.top = 25
@@ -263,6 +264,7 @@ module TT::Plugins::Editor3dText
       # Text size
       eSizeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
       txtSize = TT::GUI::Textbox.new( @size.to_s )
+      txtSize.name = :txt_size
       txtSize.top = 25
       txtSize.right = 0
       txtSize.width = 80
@@ -270,7 +272,6 @@ module TT::Plugins::Editor3dText
         eSizeChange.call( control.value )
       }
       container.add_control( txtSize )
-      @tHeight = txtSize
 
       lblSize = TT::GUI::Label.new( 'Height:', txtSize )
       lblSize.top = 25
@@ -280,6 +281,7 @@ module TT::Plugins::Editor3dText
       # Extrude Height
       eExtrudeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
       txtExtrude = TT::GUI::Textbox.new( @extrusion.to_s )
+      txtExtrude.name = :txt_extrusion
       txtExtrude.enabled = @filled # Disable when text is not filled.
       txtExtrude.top = 50
       txtExtrude.right = 0
@@ -288,7 +290,6 @@ module TT::Plugins::Editor3dText
         eExtrudeChange.call( control.value )
       }
       container.add_control( txtExtrude )
-      @tExtrusion = txtExtrude
       
       # Form
       lblForm = TT::GUI::Label.new( 'Form:' )
@@ -298,6 +299,7 @@ module TT::Plugins::Editor3dText
       
       # Extrude
       chkExtrude = TT::GUI::Checkbox.new( 'Extrude:' )
+      chkExtrude.name = :chk_extrude
       chkExtrude.enabled = @filled # Disable when text is not filled.
       chkExtrude.top = 50
       chkExtrude.right = 85
@@ -306,10 +308,10 @@ module TT::Plugins::Editor3dText
         input_changed( nil )
       }
       container.add_control( chkExtrude )
-      @cExtrude = chkExtrude
       
       # Filled
       chkFilled = TT::GUI::Checkbox.new( 'Filled' )
+      chkFilled.name = :chk_filled
       chkFilled.top = 50
       chkFilled.left = 35
       chkFilled.checked = @filled
@@ -319,7 +321,6 @@ module TT::Plugins::Editor3dText
         chkExtrude.enabled = control.checked
       }
       container.add_control( chkFilled )
-      @cFilled = chkFilled
 
       # Close Button
       btnClose = TT::GUI::Button.new( 'Close' ) { |control|
@@ -358,14 +359,15 @@ module TT::Plugins::Editor3dText
 
       @group.entities.clear!
       
-      @font      = @dbFont.value
-      @style     = @dbStyle.value
-      bold       = @dbStyle.value.include?( 'Bold' )
-      italic     = @dbStyle.value.include?( 'Italic' )
-      @size      = @tHeight.value.to_l
-      @filled    = @cFilled.checked
-      @extruded  = @cExtrude.checked
-      @extrusion = @tExtrusion.value.to_l
+      w = @window
+      @font      = w[:lst_font].value
+      @style     = w[:lst_style].value
+      bold       = @style.include?( 'Bold' )
+      italic     = @style.include?( 'Italic' )
+      @size      = w[:txt_size].value.to_l
+      @filled    = w[:chk_filled].checked
+      @extruded  = w[:chk_extrude].checked
+      @extrusion = w[:txt_extrusion].value.to_l
       extrusion  = ( @extruded ) ? @extrusion : 0.0
       tolerance = 0
       z = 0
