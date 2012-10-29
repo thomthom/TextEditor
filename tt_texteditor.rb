@@ -280,6 +280,7 @@ module TT::Plugins::Editor3dText
       # Extrude Height
       eExtrudeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
       txtExtrude = TT::GUI::Textbox.new( @extrusion.to_s )
+      txtExtrude.enabled = @filled # Disable when text is not filled.
       txtExtrude.top = 50
       txtExtrude.right = 0
       txtExtrude.width = 80
@@ -297,6 +298,7 @@ module TT::Plugins::Editor3dText
       
       # Extrude
       chkExtrude = TT::GUI::Checkbox.new( 'Extrude:' )
+      chkExtrude.enabled = @filled # Disable when text is not filled.
       chkExtrude.top = 50
       chkExtrude.right = 85
       chkExtrude.checked = @extruded
@@ -313,6 +315,8 @@ module TT::Plugins::Editor3dText
       chkFilled.checked = @filled
       chkFilled.add_event_handler( :change ) { |control|
         input_changed( nil )
+        txtExtrude.enabled = control.checked
+        chkExtrude.enabled = control.checked
       }
       container.add_control( chkFilled )
       @cFilled = chkFilled
@@ -402,7 +406,7 @@ module TT::Plugins::Editor3dText
   # @note Debug method to reload the plugin.
   #
   # @example
-  #   TT::Plugins::Template.reload
+  #   TT::Plugins::Editor3dText.reload
   #
   # @param [Boolean] tt_lib
   #
@@ -415,10 +419,10 @@ module TT::Plugins::Editor3dText
     # Core file (this)
     load __FILE__
     # Supporting files
-    x = Dir.glob( File.join(PATH, '*.{rb,rbs}') ).each { |file|
-      load file
-    }
-    x.length
+    #x = Dir.glob( File.join(PATH, '*.{rb,rbs}') ).each { |file|
+    #  load file
+    #}
+    #x.length
   ensure
     $VERBOSE = original_verbose
   end
