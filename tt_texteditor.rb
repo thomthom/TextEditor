@@ -52,8 +52,10 @@ module TT::Plugins::Editor3dText
     
     # Context menu
     UI.add_context_menu_handler { |context_menu|
-      instance = Sketchup.active_model.selection.find { |e|
-        TT::Instance.is?(e) && e.attribute_dictionary( PLUGIN_ID, false )
+      instance = Sketchup.active_model.selection.find { |entity|
+        next unless TT::Instance.is?( entity )
+        definition = TT::Instance.definition( entity )
+        definition.attribute_dictionary( PLUGIN_ID, false )
       }
       context_menu.add_item( 'Edit Text' ) {
         Sketchup.active_model.select_tool( TextEditorTool.new( instance ) )
@@ -90,7 +92,7 @@ module TT::Plugins::Editor3dText
     # @since 1.0 0
     def initialize( instance = nil )
       @origin = nil
-      @group = nil
+      @instance = nil
       @ip = Sketchup::InputPoint.new
 
       @text      = "Hello World\nFoo\nBasecamp"
@@ -103,9 +105,10 @@ module TT::Plugins::Editor3dText
       @align     = 'Left'
 
       if instance
-        @group = instance
+        @instance = instance
         @origin = instance.transformation.origin
-        read_properties( instance )
+        definition = TT::Instance.definition( @instance )
+        read_properties( definition )
         instance.model.start_operation( 'Edit 3D Text' )
         open_ui()
       end
@@ -136,9 +139,9 @@ module TT::Plugins::Editor3dText
       if @origin.nil?
         @origin = @ip.position
         view.model.start_operation( 'Create 3D Text' )
-        @group = view.model.active_entities.add_group
+        @instance = view.model.active_entities.add_group
         tr = Geom::Transformation.new( @origin )
-        @group.transform!( tr )
+        @instance.transform!( tr )
 
         open_ui()
       end
@@ -359,7 +362,8 @@ module TT::Plugins::Editor3dText
 
       @text = value if value
 
-      @group.entities.clear!
+      definition = TT::Instance.definition( @instance )
+      definition.entities.clear!
       
       w = @window
       @font      = w[:lst_font].value
@@ -380,12 +384,12 @@ module TT::Plugins::Editor3dText
         when 'Right':   TextAlignRight
       end # (?) Map to Hash?
 
-      @group.entities.add_3d_text(
+      definition.entities.add_3d_text(
         @text,
         align, @font, bold, italic, @size,
         tolerance, z, @filled, extrusion
       )
-      write_properties( @group )
+      write_properties( definition )
     end
     
     # @since 1.0 0
