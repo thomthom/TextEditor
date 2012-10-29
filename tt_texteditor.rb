@@ -52,7 +52,9 @@ module TT::Plugins::Editor3dText
     
     # Context menu
     UI.add_context_menu_handler { |context_menu|
-      instance = Sketchup.active_model.selection.find { |e| TT::Instance.is?(e) }
+      instance = Sketchup.active_model.selection.find { |e|
+        TT::Instance.is?(e) && e.attribute_dictionary( PLUGIN_ID, false )
+      }
       context_menu.add_item( 'Edit Text' ) {
         Sketchup.active_model.select_tool( TextEditorTool.new( instance ) )
       } if instance
@@ -388,26 +390,26 @@ module TT::Plugins::Editor3dText
     
     # @since 1.0 0
     def write_properties( entity )
-      entity.set_attribute( 'TT_Editor', 'Text',      @text )
-      entity.set_attribute( 'TT_Editor', 'Font',      @font )
-      entity.set_attribute( 'TT_Editor', 'Style',     @style )
-      entity.set_attribute( 'TT_Editor', 'Size',      @size )
-      entity.set_attribute( 'TT_Editor', 'Filled',    @filled )
-      entity.set_attribute( 'TT_Editor', 'Extruded',  @extruded )
-      entity.set_attribute( 'TT_Editor', 'Extrusion', @extrusion )
-      entity.set_attribute( 'TT_Editor', 'Align',     @align )
+      entity.set_attribute( PLUGIN_ID, 'Text',      @text )
+      entity.set_attribute( PLUGIN_ID, 'Font',      @font )
+      entity.set_attribute( PLUGIN_ID, 'Style',     @style )
+      entity.set_attribute( PLUGIN_ID, 'Size',      @size )
+      entity.set_attribute( PLUGIN_ID, 'Filled',    @filled )
+      entity.set_attribute( PLUGIN_ID, 'Extruded',  @extruded )
+      entity.set_attribute( PLUGIN_ID, 'Extrusion', @extrusion )
+      entity.set_attribute( PLUGIN_ID, 'Align',     @align )
     end
 
     # @since 1.0 0
     def read_properties( entity )
-      @text      = entity.get_attribute( 'TT_Editor', 'Text',      'Hello World' )
-      @font      = entity.get_attribute( 'TT_Editor', 'Font',      'Arial' )
-      @style     = entity.get_attribute( 'TT_Editor', 'Style',     'Normal' )
-      @size      = entity.get_attribute( 'TT_Editor', 'Size', 	   1.m ).to_l
-      @filled    = entity.get_attribute( 'TT_Editor', 'Filled',    true )
-      @extruded  = entity.get_attribute( 'TT_Editor', 'Extruded',  true )
-      @extrusion = entity.get_attribute( 'TT_Editor', 'Extrusion', 0.m ).to_l
-      @align     = entity.get_attribute( 'TT_Editor', 'Align',     'Left' )
+      @text      = entity.get_attribute( PLUGIN_ID, 'Text',      'Hello World' )
+      @font      = entity.get_attribute( PLUGIN_ID, 'Font',      'Arial' )
+      @style     = entity.get_attribute( PLUGIN_ID, 'Style',     'Normal' )
+      @size      = entity.get_attribute( PLUGIN_ID, 'Size', 	   1.m ).to_l
+      @filled    = entity.get_attribute( PLUGIN_ID, 'Filled',    true )
+      @extruded  = entity.get_attribute( PLUGIN_ID, 'Extruded',  true )
+      @extrusion = entity.get_attribute( PLUGIN_ID, 'Extrusion', 0.m ).to_l
+      @align     = entity.get_attribute( PLUGIN_ID, 'Align',     'Left' )
     end
 
   end # class
