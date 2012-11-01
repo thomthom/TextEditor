@@ -125,6 +125,7 @@ module TT::Plugins::Editor3dText
     # 
     # @since 1.0.0
     def deactivate( view )
+      @window.close if @window && @window.visible?
       view.invalidate
     end
 
@@ -337,13 +338,14 @@ module TT::Plugins::Editor3dText
         font_names = list_system_fonts( window )
         font_list = w[:lst_font]
         font_list.add_item( font_names )
-        # Set font
+        # Set font.
         if font_list.items.include?( @font )
           font = @font
         else
           font = default_font( font_names )
         end
         font_list.value = font
+        # Update 3D Text.
         input_changed( @text )
       }
       w.set_on_close {
@@ -439,8 +441,8 @@ module TT::Plugins::Editor3dText
     # @since 1.0.0
     def list_system_fonts( window )
       # Try to get list of system fonts.
-      font_names = window.call_script('System.font_names')
-      return font_names unless font_names.empty?
+      @font_names ||= window.call_script('System.font_names')
+      return @font_names unless @font_names.empty?
       # Fall back to providing some select default fonts.
       # SketchUp will default to some existing font if you provide a font not
       # in the system.
