@@ -95,7 +95,8 @@ module TT::Plugins::Editor3dText
       @instance = nil
       @ip = Sketchup::InputPoint.new
 
-      @text      = "Hello World\nFoo\nBasecamp"
+      # Default values.
+      @text      = "Enter text"
       @font      = 'Arial'
       @style     = 'Normal'
       @size      = 1.m
@@ -103,7 +104,8 @@ module TT::Plugins::Editor3dText
       @extruded  = true
       @extrusion = 0.m
       @align     = 'Left'
-
+      
+      # Load values from provided instance.
       if instance
         @instance = instance
         @origin = instance.transformation.origin
@@ -414,14 +416,14 @@ module TT::Plugins::Editor3dText
 
     # @since 1.0.0
     def read_properties( entity )
-      @text      = entity.get_attribute( PLUGIN_ID, 'Text',      'Hello World' )
-      @font      = entity.get_attribute( PLUGIN_ID, 'Font',      'Arial' )
-      @style     = entity.get_attribute( PLUGIN_ID, 'Style',     'Normal' )
-      @size      = entity.get_attribute( PLUGIN_ID, 'Size', 	   1.m ).to_l
-      @filled    = entity.get_attribute( PLUGIN_ID, 'Filled',    true )
-      @extruded  = entity.get_attribute( PLUGIN_ID, 'Extruded',  true )
-      @extrusion = entity.get_attribute( PLUGIN_ID, 'Extrusion', 0.m ).to_l
-      @align     = entity.get_attribute( PLUGIN_ID, 'Align',     'Left' )
+      @text      = entity.get_attribute( PLUGIN_ID, 'Text',      @text )
+      @font      = entity.get_attribute( PLUGIN_ID, 'Font',      @font )
+      @style     = entity.get_attribute( PLUGIN_ID, 'Style',     @style )
+      @size      = entity.get_attribute( PLUGIN_ID, 'Size', 	   @size ).to_l
+      @filled    = entity.get_attribute( PLUGIN_ID, 'Filled',    @filled )
+      @extruded  = entity.get_attribute( PLUGIN_ID, 'Extruded',  @extruded )
+      @extrusion = entity.get_attribute( PLUGIN_ID, 'Extrusion', @extrusion ).to_l
+      @align     = entity.get_attribute( PLUGIN_ID, 'Align',     @align )
     end
     
     # @since 1.0.0
