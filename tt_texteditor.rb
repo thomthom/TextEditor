@@ -439,7 +439,7 @@ module TT::Plugins::Editor3dText
     # @since 1.0.0
     def list_system_fonts( window )
       # Try to get list of system fonts.
-      font_names = window.call_script('SystemOS.font_names')
+      font_names = window.call_script('System.font_names')
       return font_names unless font_names.empty?
       # Fall back to providing some select default fonts.
       # SketchUp will default to some existing font if you provide a font not
