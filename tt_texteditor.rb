@@ -16,7 +16,7 @@ rescue LoadError => e
     message << "\n"
     message << "Would you like to open a webpage where you can download TT_Lib²?"
     result = UI.messagebox( message, MB_YESNO )
-    if result == 6 # YES
+    if result == IDYES
       UI.openURL( 'http://www.thomthom.net/software/tt_lib2/' )
     end
   }
@@ -449,7 +449,8 @@ module TT::Plugins::Editor3dText
       # SketchUp will default to some existing font if you provide a font not
       # in the system.
       if TT::System::PLATFORM_IS_WINDOWS
-        # http://www.ampsoft.net/webdesign-l/windows-fonts-by-version.html
+        # http://www.ampsoft.net/webdesign-l/windows-fonts-by-version.htm
+        # (!) Review list. ("New" vs "UPC")
         [
           'Aharoni Bold',
           'Andalus',
