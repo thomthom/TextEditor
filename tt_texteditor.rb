@@ -194,7 +194,8 @@ module TT::Plugins::Editor3dText
       txtInput.width = 300
       txtInput.height = 140
       txtInput.add_event_handler( :textchange ) { |control|
-        eInputChange.call( control.value )
+        # (!) .dup is required to avoid BugSplat under SketchUp.
+        eInputChange.call( control.value.dup )
       }
       w.add_control( txtInput )
       
@@ -272,7 +273,7 @@ module TT::Plugins::Editor3dText
       txtSize.right = 0
       txtSize.width = 80
       txtSize.add_event_handler( :textchange ) { |control|
-        eSizeChange.call( control.value )
+        eSizeChange.call( control.value.dup )
       }
       container.add_control( txtSize )
 
@@ -290,7 +291,7 @@ module TT::Plugins::Editor3dText
       txtExtrude.right = 0
       txtExtrude.width = 80
       txtExtrude.add_event_handler( :textchange ) { |control|
-        eExtrudeChange.call( control.value )
+        eExtrudeChange.call( control.value.dup )
       }
       container.add_control( txtExtrude )
       
@@ -350,6 +351,7 @@ module TT::Plugins::Editor3dText
         # Update 3D Text.
         input_changed( @text )
       }
+
       w.set_on_close {
         on_window_close()
       }
@@ -373,7 +375,7 @@ module TT::Plugins::Editor3dText
       @text = value if value
 
       definition = TT::Instance.definition( @instance )
-      definition.entities.clear!
+      definition.entities.clear! if definition.valid?
       
       w = @window
       @font      = w[:lst_font].value
