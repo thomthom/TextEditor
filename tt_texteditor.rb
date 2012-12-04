@@ -153,7 +153,6 @@ module TT::Plugins::Editor3dText
     def onLButtonUp( flags, x, y, view )
       if @origin.nil? && @mouse_origin
         @origin = @mouse_origin
-        open_ui()
       end
       view.invalidate
     end
@@ -240,6 +239,7 @@ module TT::Plugins::Editor3dText
         write_properties( definition )
         tr = Geom::Transformation.new( @mouse_origin )
         @instance = model.active_entities.add_instance( definition, tr )
+        open_ui()
       end
       
       # Position the text in the model. Glue to instance if possible.
