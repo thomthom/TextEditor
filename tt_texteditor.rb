@@ -88,6 +88,10 @@ module TT::Plugins::Editor3dText
   
   # @since 1.0.0
   class TextEditorTool
+  
+    ALIGN_LEFT   = 'Left'.freeze
+    ALIGN_CENTER = 'Center'.freeze
+    ALIGN_RIGHT  = 'Right'.freeze
 
     # @since 1.0.0
     def initialize( instance = nil )
@@ -103,14 +107,20 @@ module TT::Plugins::Editor3dText
       @filled    = true
       @extruded  = true
       @extrusion = 0.m
-      @align     = 'Left'
+      @align     = ALIGN_LEFT
       
       # Load values from provided instance.
       if instance
         @instance = instance
-        @origin = instance.transformation.origin
+        
         definition = TT::Instance.definition( @instance )
         read_properties( definition )
+        
+        origin = instance.transformation.origin
+        position = get_align_point( @instance, @align, origin )
+        vector = origin.vector_to( position )
+        @origin = origin.offset( vector.reverse )
+        
         instance.model.start_operation( 'Edit 3D Text' )
         open_ui()
       end
@@ -210,7 +220,7 @@ module TT::Plugins::Editor3dText
       model = view.model
       
       # Pick a point in the model where the text can be inserted under the
-      # cursor. Trying to find an entitiy to glue to.
+      # cursor. Trying to find an entitiy to glue to.      
       ph = view.pick_helper
       ph.do_pick( x, y )
       face = get_best_face( ph, @instance )
@@ -230,25 +240,27 @@ module TT::Plugins::Editor3dText
       
       # Create the text definition when needed.
       if @instance.nil?
+        #@temp_origin = point
         model.start_operation( 'Create 3D Text' )
         name = model.definitions.unique_name( 'Editable 3D Text' )
         definition = model.definitions.add( name )
         definition.behavior.is2d = true
         definition.behavior.snapto = SnapTo_Arbitrary
-        update_3d_text( definition.entities )
         write_properties( definition )
-        tr = Geom::Transformation.new( @mouse_origin )
+        tr = Geom::Transformation.new( point )
         @instance = model.active_entities.add_instance( definition, tr )
+        update_3d_text( definition.entities )
         open_ui()
       end
       
       # Position the text in the model. Glue to instance if possible.
       if @origin.nil?
+        position = get_align_point( @instance, @align, @mouse_origin )
         # Align instance to face.
         if face
           view.tooltip = 'Align to face'
           normal = face.normal.transform( face_transformation )
-          tr = Geom::Transformation.new( @mouse_origin, normal )
+          tr = Geom::Transformation.new( position, normal )
           @instance.glued_to = nil if @instance.glued_to
           @instance.transformation = tr
           if face.parent.entities == model.active_entities
@@ -257,7 +269,7 @@ module TT::Plugins::Editor3dText
         # No face found - simply position.
         else
           view.tooltip = 'No align'
-          tr = Geom::Transformation.new( @mouse_origin )
+          tr = Geom::Transformation.new( position )
           @instance.transformation = tr
         end
       end
@@ -271,6 +283,10 @@ module TT::Plugins::Editor3dText
     def draw( view )
       if @origin
         view.draw_points( [@origin], 10, 4, 'red' )
+      end
+
+      if @align_pt
+        view.draw_points( [@align_pt], 10, 5, 'green' )
       end
     end
 
@@ -348,9 +364,9 @@ module TT::Plugins::Editor3dText
       
       # Text Alignment
       lstAlign = TT::GUI::Listbox.new( [
-        'Left',
-        'Center',
-        'Right'
+        ALIGN_LEFT,
+        ALIGN_CENTER,
+        ALIGN_RIGHT
       ] )
       lstAlign.name = :lst_align
       lstAlign.value = @align
@@ -484,21 +500,10 @@ module TT::Plugins::Editor3dText
       w = @window
       @font      = w[:lst_font].value
       @style     = w[:lst_style].value
-      bold       = @style.include?( 'Bold' )
-      italic     = @style.include?( 'Italic' )
       @size      = w[:txt_size].value.to_l
       @filled    = w[:chk_filled].checked
       @extruded  = w[:chk_extrude].checked
       @extrusion = w[:txt_extrusion].value.to_l
-      extrusion  = ( @extruded ) ? @extrusion : 0.0
-      tolerance = 0
-      z = 0
-
-      align = case @align
-        when 'Left':    TextAlignLeft
-        when 'Center':  TextAlignCenter
-        when 'Right':   TextAlignRight
-      end # (?) Map to Hash?
 
       update_3d_text( definition.entities )
       write_properties( definition )
@@ -506,13 +511,15 @@ module TT::Plugins::Editor3dText
     
     # @since 1.0.0
     def update_3d_text( entities )
+      #puts 'update_3d_text'
+      
       bold       = @style.include?( 'Bold' )
       italic     = @style.include?( 'Italic' )
       
       align = case @align
-        when 'Left':    TextAlignLeft
-        when 'Center':  TextAlignCenter
-        when 'Right':   TextAlignRight
+        when ALIGN_LEFT:    TextAlignLeft
+        when ALIGN_CENTER:  TextAlignCenter
+        when ALIGN_RIGHT:   TextAlignRight
       end # (?) Map to Hash?
       
       extrusion  = ( @extruded ) ? @extrusion : 0.0
@@ -524,6 +531,41 @@ module TT::Plugins::Editor3dText
         align, @font, bold, italic, @size,
         tolerance, z, @filled, extrusion
       )
+      
+      # Align instance to Text Alignment.
+      origin = @origin || @mouse_origin
+      position = get_align_point( @instance, @align, origin )
+      
+      @align_pt = position
+      
+      z_axis = @instance.transformation.zaxis
+      new_tr = Geom::Transformation.new( position, z_axis )
+      @instance.transformation = new_tr
+    end
+    
+    # @since 1.0.0
+    def get_align_point( instance, alignment, origin )
+      definition = TT::Instance.definition( instance )
+      
+      left_pt  = definition.bounds.corner(0) # (left front bottom)
+      right_pt = definition.bounds.corner(1) # (right front bottom)
+      mid_pt   = Geom::linear_combination( 0.5, left_pt, 0.5, right_pt )
+      
+      if alignment == ALIGN_LEFT
+        vector = nil
+      elsif alignment == ALIGN_CENTER
+        vector = mid_pt.vector_to( left_pt )
+      elsif alignment == ALIGN_RIGHT
+        vector = right_pt.vector_to( left_pt )
+      end
+      
+      position = origin.clone
+      if vector && vector.valid?
+        vector.transform!( instance.transformation )
+        position.offset!( vector )
+      end
+      
+      position
     end
     
     # @since 1.0.0
