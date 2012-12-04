@@ -128,7 +128,20 @@ module TT::Plugins::Editor3dText
     # @since 1.0.0
     def deactivate( view )
       @window.close if @window && @window.visible?
+      
+      if @origin
+        view.model.commit_operation
+      else
+        view.model.abort_operation
+      end
+      
       view.invalidate
+    end
+    
+    def onCancel( reason, view )
+      puts "Cancel: #{reason}"
+      @origin = nil
+      view.model.select_tool( nil )
     end
 
     # @param [Integer] flags
@@ -138,17 +151,54 @@ module TT::Plugins::Editor3dText
     # 
     # @since 1.0.0
     def onLButtonUp( flags, x, y, view )
-      @ip.pick( view, x, y )
-      if @origin.nil?
-        @origin = @ip.position
-        view.model.start_operation( 'Create 3D Text' )
-        @instance = view.model.active_entities.add_group
-        tr = Geom::Transformation.new( @origin )
-        @instance.transform!( tr )
-
+      if @origin.nil? && @mouse_origin
+        @origin = @mouse_origin
         open_ui()
       end
       view.invalidate
+    end
+    
+    # @param [Sketchup::PickHelper] pick_helper
+    # @param [Sketchup::Face] face
+    # @param [Sketchup::Entity] exclude_parent Group, Image or ComponentInstance
+    # 
+    # @return [Geom::Transformation, Nil]
+    # @since 1.0.0
+    def get_best_face( pick_helper, exclude_parent = nil )
+      pick_helper.count.times { |index|
+        path = pick_helper.path_at( index )
+        next if exclude_parent && path.include?( exclude_parent )
+        leaf = path.last
+        return leaf if leaf.is_a?( Sketchup::Face )
+      }
+      nil
+    end
+    
+    # @param [Sketchup::PickHelper] pick_helper
+    # @param [Sketchup::Face] face
+    # 
+    # @return [Geom::Transformation, Nil]
+    # @since 1.0.0
+    def get_face_transformation( pick_helper, face )
+      pick_helper.count.times { |index|
+        leaf = pick_helper.leaf_at( index )
+        next unless leaf == face
+        return pick_helper.transformation_at( index )
+      }
+      nil
+    end
+    
+    # @param [Array<Sketchup::Entity>] entities
+    # 
+    # @return [Geom::Transformation, Nil]
+    # @since 1.0.0
+    def get_ray_transformation( entities )
+      tr = Geom::Transformation.new
+      for entity in entities
+        next unless entity.respond_to?( :transformation )
+        tr = tr * entity.transformation
+      end
+      tr
     end
 
     # @param [Integer] flags
@@ -158,6 +208,60 @@ module TT::Plugins::Editor3dText
     # 
     # @since 1.0.0
     def onMouseMove( flags, x, y, view )
+      model = view.model
+      
+      # Pick a point in the model where the text can be inserted under the
+      # cursor. Trying to find an entitiy to glue to.
+      ph = view.pick_helper
+      ph.do_pick( x, y )
+      face = get_best_face( ph, @instance )
+      face_transformation = get_face_transformation( ph, face )
+      
+      ray = view.pickray( x, y )
+      result = model.raytest( ray )
+      if result
+        point = result[0]
+      else
+        plane = [ORIGIN, Z_AXIS]
+        point = Geom.intersect_line_plane( ray, plane )
+        # (!) Error catch.
+      end
+      
+      @mouse_origin = point
+      
+      # Create the text definition when needed.
+      if @instance.nil?
+        model.start_operation( 'Create 3D Text' )
+        name = model.definitions.unique_name( 'Editable 3D Text' )
+        definition = model.definitions.add( name )
+        definition.behavior.is2d = true
+        definition.behavior.snapto = SnapTo_Arbitrary
+        update_3d_text( definition.entities )
+        write_properties( definition )
+        tr = Geom::Transformation.new( @mouse_origin )
+        @instance = model.active_entities.add_instance( definition, tr )
+      end
+      
+      # Position the text in the model. Glue to instance if possible.
+      if @origin.nil?
+        # Align instance to face.
+        if face
+          view.tooltip = 'Align to face'
+          normal = face.normal.transform( face_transformation )
+          tr = Geom::Transformation.new( @mouse_origin, normal )
+          @instance.glued_to = nil if @instance.glued_to
+          @instance.transformation = tr
+          if face.parent.entities == model.active_entities
+            @instance.glued_to = face
+          end
+        # No face found - simply position.
+        else
+          view.tooltip = 'No align'
+          tr = Geom::Transformation.new( @mouse_origin )
+          @instance.transformation = tr
+        end
+      end
+      
       view.invalidate
     end
 
@@ -364,7 +468,7 @@ module TT::Plugins::Editor3dText
     # @since 1.0.0
     def on_window_close
       model = Sketchup.active_model
-      model.commit_operation
+      #model.commit_operation
       model.select_tool( nil )
     end
 
@@ -396,12 +500,30 @@ module TT::Plugins::Editor3dText
         when 'Right':   TextAlignRight
       end # (?) Map to Hash?
 
-      definition.entities.add_3d_text(
+      update_3d_text( definition.entities )
+      write_properties( definition )
+    end
+    
+    # @since 1.0.0
+    def update_3d_text( entities )
+      bold       = @style.include?( 'Bold' )
+      italic     = @style.include?( 'Italic' )
+      
+      align = case @align
+        when 'Left':    TextAlignLeft
+        when 'Center':  TextAlignCenter
+        when 'Right':   TextAlignRight
+      end # (?) Map to Hash?
+      
+      extrusion  = ( @extruded ) ? @extrusion : 0.0
+      tolerance = 0
+      z = 0
+      
+      entities.add_3d_text(
         @text,
         align, @font, bold, italic, @size,
         tolerance, z, @filled, extrusion
       )
-      write_properties( definition )
     end
     
     # @since 1.0.0
