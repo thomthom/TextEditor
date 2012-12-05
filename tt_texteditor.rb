@@ -306,9 +306,14 @@ module TT::Plugins::Editor3dText
       }
       w = TT::GUI::ToolWindow.new( props )
       w.theme = TT::GUI::Window::THEME_GRAPHITE
+      
+      # Deferred event - preventing call to a method to be called too often and
+      # unless the value actually changes.
+      eChange = TT::DeferredEvent.new { |value|
+        input_changed( value )
+      }
 
       # Text input
-      eInputChange = TT::DeferredEvent.new { |value| input_changed( value ) }
       txtInput = TT::GUI::Textbox.new( @text )
       txtInput.name = :txt_input
       txtInput.multiline = true
@@ -318,7 +323,15 @@ module TT::Plugins::Editor3dText
       txtInput.height = 140
       txtInput.add_event_handler( :textchange ) { |control|
         # (!) .dup is required to avoid BugSplat under SketchUp.
-        eInputChange.call( control.value.dup )
+        # 
+        # That alone is not enough. It appear that TT::DeferredEvent will cause
+        # a bugsplat. All though I don't understand why. Under Windows it works
+        # fine. This project has had a lot of OSX issues... :/
+        if TT::System::PLATFORM_IS_OSX
+          input_changed( control.value.dup ) if control.value != @text
+        else
+          eChange.call( control.value.dup )
+        end
       }
       w.add_control( txtInput )
       
@@ -389,14 +402,17 @@ module TT::Plugins::Editor3dText
       container.add_control( lblFont )
 
       # Text size
-      eSizeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
       txtSize = TT::GUI::Textbox.new( @size.to_s )
       txtSize.name = :txt_size
       txtSize.top = 25
       txtSize.right = 0
       txtSize.width = 80
       txtSize.add_event_handler( :textchange ) { |control|
-        eSizeChange.call( control.value.dup )
+        if TT::System::PLATFORM_IS_OSX
+          input_changed( nil )
+        else
+          eChange.call( nil )
+        end
       }
       container.add_control( txtSize )
 
@@ -406,7 +422,6 @@ module TT::Plugins::Editor3dText
       container.add_control( lblSize )
 
       # Extrude Height
-      eExtrudeChange = TT::DeferredEvent.new { |value| input_changed( nil ) }
       txtExtrude = TT::GUI::Textbox.new( @extrusion.to_s )
       txtExtrude.name = :txt_extrusion
       txtExtrude.enabled = @filled # Disable when text is not filled.
@@ -414,7 +429,11 @@ module TT::Plugins::Editor3dText
       txtExtrude.right = 0
       txtExtrude.width = 80
       txtExtrude.add_event_handler( :textchange ) { |control|
-        eExtrudeChange.call( control.value.dup )
+        if TT::System::PLATFORM_IS_OSX
+          input_changed( nil )
+        else
+          eChange.call( nil )
+        end
       }
       container.add_control( txtExtrude )
       
@@ -487,7 +506,6 @@ module TT::Plugins::Editor3dText
     # @since 1.0.0
     def on_window_close
       model = Sketchup.active_model
-      #model.commit_operation
       model.select_tool( nil )
     end
 
@@ -498,7 +516,7 @@ module TT::Plugins::Editor3dText
       @text = value if value
 
       definition = TT::Instance.definition( @instance )
-      definition.entities.clear! if definition.valid?
+      definition.entities.clear!
       
       w = @window
       @font      = w[:lst_font].value
@@ -508,7 +526,11 @@ module TT::Plugins::Editor3dText
       @extruded  = w[:chk_extrude].checked
       @extrusion = w[:txt_extrusion].value.to_l
 
-      update_3d_text( definition.entities )
+      # OSX seem more agressive in trying to erase an empty component. If you
+      # use entities.add_3d_text with an empty string into an empty component it
+      # will erase that component definition.
+      # (I thought that happened only on operation commit...)
+      update_3d_text( definition.entities ) unless @text.strip.empty?
       write_properties( definition )
     end
     
