@@ -9,17 +9,20 @@ require 'sketchup.rb'
 begin
   require 'TT_Lib2/core.rb'
 rescue LoadError => e
-  timer = UI.start_timer( 0, false ) {
-    UI.stop_timer( timer )
-    filename = File.basename( __FILE__ )
-    message = "#{filename} require TT_Lib² to be installed.\n"
-    message << "\n"
-    message << "Would you like to open a webpage where you can download TT_Lib²?"
-    result = UI.messagebox( message, MB_YESNO )
-    if result == IDYES
-      UI.openURL( 'http://www.thomthom.net/software/tt_lib2/' )
+  module TT
+    if @lib2_update.nil?
+      url = 'http://www.thomthom.net/software/sketchup/tt_lib2/errors/not-installed'
+      options = {
+        :dialog_title => 'TT_Lib² Not Installed',
+        :scrollable => false, :resizable => false, :left => 200, :top => 200
+      }
+      w = UI::WebDialog.new( options )
+      w.set_size( 500, 300 )
+      w.set_url( "#{url}?plugin=#{File.basename( __FILE__ )}" )
+      w.show
+      @lib2_update = w
     end
-  }
+  end
 end
 
 
