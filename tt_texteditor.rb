@@ -76,7 +76,7 @@ module TT::Plugins::Editor3dText
       :version => PLUGIN_VERSION.to_s,
       :date => RELEASE_DATE,   
       :description => 'Editable 3D text with live preview.',
-      :link_info => 'http://forums.sketchucation.com/viewtopic.php?f=0&t=0'
+      :link_info => 'http://sketchucation.com/forums/viewtopic.php?t=0'
     }
   end
   
@@ -672,11 +672,15 @@ module TT::Plugins::Editor3dText
         '/usr/X11/bin/fc-list'
       ]
       fc_list = fc_list_locations.find { |location| File.exist?( location ) }
+      if fc_list.nil?
+        puts 'Warning: Could not find fc-list!'
+        return []
+      end
       data = (`#{fc_list} : file family | grep \/Library\/Fonts`)
       fonts = data.scan(/[^:]+[:]\s*(.*)/).flatten!
       fonts.map! { |string| string.split(',') }.flatten! # Some lines include multiple fonts.
       fonts.uniq!
-      fonts.sort!
+      fonts.sort! # (!) Not UTF-8 compatible! But better than nothing.
       fonts
     end
     
