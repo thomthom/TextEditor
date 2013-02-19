@@ -40,7 +40,7 @@ module TT::Plugins::Editor3dText
   PLUGIN_VERSION  = TT::Version.new(1,0,0).freeze
   
   # Version information
-  RELEASE_DATE    = '29 Oct 12'.freeze
+  RELEASE_DATE    = '19 Feb 13'.freeze
   
   # Resource paths
   PATH_ROOT   = File.dirname( __FILE__ ).freeze
@@ -61,6 +61,7 @@ module TT::Plugins::Editor3dText
         definition.attribute_dictionary( PLUGIN_ID, false )
       }
       context_menu.add_item( 'Edit Text' ) {
+        self.warn_if_incompatible()
         Sketchup.active_model.select_tool( TextEditorTool.new( instance ) )
       } if instance
     }
@@ -85,7 +86,18 @@ module TT::Plugins::Editor3dText
 
   # @since 1.0.0
   def self.writer_tool
+    self.warn_if_incompatible()
     Sketchup.active_model.select_tool( TextEditorTool.new )
+  end
+  
+  
+  # @since 1.0.0
+  def self.warn_if_incompatible
+    @warned ||= false
+    if !@warned && TT::System::PLATFORM_IS_OSX
+      @warned = true
+      UI.messagebox( 'Crash Warning! This plugin might crash SketchUp when run under OSX.' )
+    end
   end
 
   
