@@ -31,19 +31,6 @@ end
 if defined?( TT::Lib ) && TT::Lib.compatible?( '2.7.0', '3D Text Editor' )
 
 module TT::Plugins::Editor3dText
-
-  ### CONSTANTS ### ------------------------------------------------------------
-  
-  # Plugin information
-  PLUGIN_ID       = 'TT_Editor3dText'.freeze
-  PLUGIN_NAME     = '3D Text Editor'.freeze
-  PLUGIN_VERSION  = TT::Version.new(1,0,0).freeze
-  
-  # Version information
-  RELEASE_DATE    = '19 Feb 13'.freeze
-  
-  # Resource paths
-  PATH_ROOT   = File.dirname( __FILE__ ).freeze
   
   
   ### MENU & TOOLBARS ### ------------------------------------------------------
@@ -68,20 +55,6 @@ module TT::Plugins::Editor3dText
   end 
   
   
-  ### LIB FREDO UPDATER ### ----------------------------------------------------
-  
-  def self.register_plugin_for_LibFredo6
-    {   
-      :name => PLUGIN_NAME,
-      :author => 'thomthom',
-      :version => PLUGIN_VERSION.to_s,
-      :date => RELEASE_DATE,   
-      :description => 'Editable 3D text with live preview.',
-      :link_info => 'http://sketchucation.com/forums/viewtopic.php?t=0'
-    }
-  end
-  
-  
   ### MAIN SCRIPT ### ----------------------------------------------------------
 
   # @since 1.0.0
@@ -96,7 +69,9 @@ module TT::Plugins::Editor3dText
     @warned ||= false
     if !@warned && TT::System::PLATFORM_IS_OSX
       @warned = true
-      UI.messagebox( 'Crash Warning! This plugin might crash SketchUp when run under OSX.' )
+      # (i) Users report it to be working. Turning out the messagebox.
+      puts 'Crash Warning! This plugin might crash SketchUp when run under OSX.'
+      #UI.messagebox( 'Crash Warning! This plugin might crash SketchUp when run under OSX.' )
     end
   end
 
@@ -622,7 +597,7 @@ module TT::Plugins::Editor3dText
       @text      = entity.get_attribute( PLUGIN_ID, 'Text',      @text )
       @font      = entity.get_attribute( PLUGIN_ID, 'Font',      @font )
       @style     = entity.get_attribute( PLUGIN_ID, 'Style',     @style )
-      @size      = entity.get_attribute( PLUGIN_ID, 'Size', 	   @size ).to_l
+      @size      = entity.get_attribute( PLUGIN_ID, 'Size',      @size ).to_l
       @filled    = entity.get_attribute( PLUGIN_ID, 'Filled',    @filled )
       @extruded  = entity.get_attribute( PLUGIN_ID, 'Extruded',  @extruded )
       @extrusion = entity.get_attribute( PLUGIN_ID, 'Extrusion', @extrusion ).to_l
@@ -697,7 +672,7 @@ module TT::Plugins::Editor3dText
     end
     
     # @since 1.0.0
-    def window_fallback_fonts
+    def windows_fallback_fonts
       # http://www.ampsoft.net/webdesign-l/windows-fonts-by-version.htm
       # (!) Review list. ("New" vs "UPC")
       [
