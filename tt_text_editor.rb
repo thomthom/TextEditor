@@ -11,9 +11,8 @@ require 'extensions.rb'
 #-------------------------------------------------------------------------------
 
 module TT
-  module Plugins
-    module Editor3dText
-  
+ module Plugins
+  module Editor3dText
   
   ### CONSTANTS ### ------------------------------------------------------------
   
@@ -39,8 +38,8 @@ module TT
     Sketchup.register_extension( ex, true )
   end 
 
-    end # module Editor3dText
-  end # module Plugins
+  end # module Editor3dText
+ end # module Plugins
 end # module TT
 
 #-------------------------------------------------------------------------------
