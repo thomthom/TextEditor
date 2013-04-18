@@ -19,11 +19,12 @@ module TT
   # Plugin information
   PLUGIN_ID       = 'TT_TextEditor'.freeze
   PLUGIN_NAME     = '3D Text Editor'.freeze
-  PLUGIN_VERSION  = '1.1.0'.freeze
+  PLUGIN_VERSION  = '1.1.1'.freeze
 
   # Resource paths
-  PATH_ROOT   = File.dirname( __FILE__ ).freeze
-  PATH        = File.join( PATH_ROOT, PLUGIN_ID ).freeze
+  FILENAMESPACE = File.basename( __FILE__, '.rb' )
+  PATH_ROOT     = File.dirname( __FILE__ ).freeze
+  PATH          = File.join( PATH_ROOT, FILENAMESPACE ).freeze
   
   
   ### EXTENSION ### ------------------------------------------------------------
