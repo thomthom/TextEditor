@@ -28,7 +28,7 @@ end
 
 #-------------------------------------------------------------------------------
 
-if defined?( TT::Lib ) && TT::Lib.compatible?( '2.7.0', '3D Text Editor' )
+if defined?( TT::Lib ) && TT::Lib.compatible?( '2.8.1', '3D Text Editor' )
 
 module TT::Plugins::Editor3dText
   
@@ -299,6 +299,7 @@ module TT::Plugins::Editor3dText
       eChange = TT::DeferredEvent.new { |value|
         input_changed( value )
       }
+      eChange.suppress_event_if_value_not_changed = false
 
       # Text input
       txtInput = TT::GUI::Textbox.new( @text )
