@@ -28,7 +28,7 @@ end
 
 #-------------------------------------------------------------------------------
 
-if defined?( TT::Lib ) && TT::Lib.compatible?( '2.8.1', '3D Text Editor' )
+if defined?( TT::Lib ) && TT::Lib.compatible?( '2.8.2', '3D Text Editor' )
 
 module TT::Plugins::Editor3dText
   
@@ -499,20 +499,20 @@ module TT::Plugins::Editor3dText
 
     # @since 1.0.0
     def input_changed( value )
-      #puts 'input_changed'
+      #puts "\ninput_changed"
 
       @text = value if value
-
-      definition = TT::Instance.definition( @instance )
-      definition.entities.clear!
       
       w = @window
-      @font      = w[:lst_font].value
-      @style     = w[:lst_style].value
+      #@font      = w[:lst_font].value
+      #@style     = w[:lst_style].value
       @size      = w[:txt_size].value.to_l
       @filled    = w[:chk_filled].checked
       @extruded  = w[:chk_extrude].checked
       @extrusion = w[:txt_extrusion].value.to_l
+
+      definition = TT::Instance.definition( @instance )
+      definition.entities.clear!
 
       # OSX seem more agressive in trying to erase an empty component. If you
       # use entities.add_3d_text with an empty string into an empty component it
@@ -666,6 +666,7 @@ module TT::Plugins::Editor3dText
       end
       data = (`#{fc_list} : file family | grep \/Library\/Fonts`)
       fonts = data.scan(/[^:]+[:]\s*(.*)/).flatten!
+      return [] if fonts.nil?
       fonts.map! { |string| string.split(',') }.flatten! # Some lines include multiple fonts.
       fonts.uniq!
       fonts.sort! # (!) Not UTF-8 compatible! But better than nothing.
