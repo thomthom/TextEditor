@@ -530,9 +530,9 @@ module TT::Plugins::Editor3dText
       italic     = @style.include?( 'Italic' )
       
       align = case @align
-        when ALIGN_LEFT:    TextAlignLeft
-        when ALIGN_CENTER:  TextAlignCenter
-        when ALIGN_RIGHT:   TextAlignRight
+        when ALIGN_LEFT   then TextAlignLeft
+        when ALIGN_CENTER then TextAlignCenter
+        when ALIGN_RIGHT  then TextAlignRight
       end # (?) Map to Hash?
       
       extrusion  = ( @extruded ) ? @extrusion : 0.0
