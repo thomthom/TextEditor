@@ -28,7 +28,7 @@ end
 
 #-------------------------------------------------------------------------------
 
-if defined?( TT::Lib ) && TT::Lib.compatible?( '2.8.3', '3D Text Editor' )
+if defined?( TT::Lib ) && TT::Lib.compatible?( '2.9.5', '3D Text Editor' )
 
 module TT::Plugins::Editor3dText
   
