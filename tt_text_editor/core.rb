@@ -28,7 +28,7 @@ end
 
 #-------------------------------------------------------------------------------
 
-if defined?( TT::Lib ) && TT::Lib.compatible?( '2.9.5', '3D Text Editor' )
+if defined?( TT::Lib ) && TT::Lib.compatible?( '2.11.0', '3D Text Editor' )
 
 module TT::Plugins::Editor3dText
   
@@ -287,8 +287,8 @@ module TT::Plugins::Editor3dText
     def open_ui
       props = {
         :dialog_title => '3D Text Editor',
-        :width => 316,
-        :height => 280,
+        :width => 325,
+        :height => 300,
         :resizable => false
       }
       w = TT::GUI::ToolWindow.new( props )
@@ -333,7 +333,6 @@ module TT::Plugins::Editor3dText
       # Font List
       lstFont = TT::GUI::Listbox.new()
       lstFont.name = :lst_font
-      #lstFont.value = @font
       lstFont.add_event_handler( :change ) { |control, value|
         # (!) Control.value isn't updated - this must change.
         @font = value
@@ -468,15 +467,10 @@ module TT::Plugins::Editor3dText
       # Hook up events.
       w.on_ready { |window|
         # Populate Font list.
-        font_names = list_system_fonts( window )
+        font_names = list_system_fonts
+        font = font_names.include?(@font) ? @font : default_font(font_names)
         font_list = w[:lst_font]
-        font_list.add_item( font_names )
-        # Set font.
-        if font_list.items.include?( @font )
-          font = @font
-        else
-          font = default_font( font_names )
-        end
+        font_list.add_item(font_names)
         font_list.value = font
         # Update 3D Text.
         input_changed( @text )
@@ -620,38 +614,13 @@ module TT::Plugins::Editor3dText
     end
     
     # @since 1.0.0
-    def list_system_fonts( window )
+    def list_system_fonts
       # Try to get list of system fonts. Cache the list for later use.
-      @font_names ||= get_system_fonts( window )
-      return @font_names unless @font_names.empty?
-      # Fall back to providing some select default fonts.
-      # SketchUp will default to some existing font if you provide a font not
-      # in the system.
-      if TT::System::PLATFORM_IS_WINDOWS
-        windows_fallback_fonts()
-      elsif TT::System::PLATFORM_IS_OSX
-        osx_fallback_fonts()
-      else
-        raise 'Unsupported platform.'
-      end
+      @font_names ||= TT::System.font_names
+      @font_names
     end
-    
-    # @since 1.0.0
-    def get_system_fonts( window )
-      if TT::System::PLATFORM_IS_WINDOWS
-        get_windows_fonts( window )
-      elsif TT::System::PLATFORM_IS_OSX
-        get_osx_fonts()
-      else
-        raise 'Unsupported platform.'
-      end
-    end
-    
-    # @since 1.0.0
-    def get_windows_fonts( window )
-      window.call_script('System.font_names')
-    end
-    
+
+    # TODO: Remove once OSX is wired up.
     # @since 1.0.0
     def get_osx_fonts
       fc_list_locations = [
@@ -671,229 +640,6 @@ module TT::Plugins::Editor3dText
       fonts.uniq!
       fonts.sort! # (!) Not UTF-8 compatible! But better than nothing.
       fonts
-    end
-    
-    # @since 1.0.0
-    def windows_fallback_fonts
-      # http://www.ampsoft.net/webdesign-l/windows-fonts-by-version.htm
-      # (!) Review list. ("New" vs "UPC")
-      [
-        'Aharoni Bold',
-        'Andalus',
-        'Angsana New/AngsanaUPC',
-        'Arabic Typesetting',
-        'Arial',
-        'Arial Black',
-        'Batang/BatangChe',
-        'Browallia New/BrowalliaUPC',
-        'Calibri',
-        'Cambria',
-        'Candara',
-        'Consolas',
-        'Constantias',
-        'Corbel',
-        'Cordia New/CordiaUPC',
-        'Courier New',
-        'DaunPenh',
-        'David',
-        'DFKai-SB',
-        'DilleniaUPC',
-        'DokChampa',
-        'Dotum/DotumChe',
-        'Estrangelo Edessa',
-        'EucrosiUPC',
-        'Euphemia',
-        'Fangsong',
-        'Franklin Gothic Medium',
-        'FrankRuehl',
-        'FreesiaUPC',
-        'Gautami',
-        'Georgia',
-        'Gisha',
-        'Gulim/GulimChe',
-        'Gungsuh/GungsuhChe',
-        'Impact',
-        'IrisUPC',
-        'Iskoola Pota',
-        'JasmineUPC',
-        'KaiTi',
-        'Kalinga',
-        'Kartika',
-        'KodchiangUPC',
-        'Latha',
-        'Leelawadee',
-        'Levenim',
-        'LilyUPC',
-        'Lucida Console',
-        'Lucida Sans Console',
-        'Malgun Gothic',
-        'Mangal',
-        'Marlett',
-        'Meiryo',
-        'Microsoft Himalaya',
-        'Microsoft JhengHei',
-        'Microsoft Sans Serif',
-        'Microsoft Uighur',
-        'Microsoft YaHei',
-        'Microsoft Yi Baiti',
-        'MingLiU-ExtB/PMingLiU-ExtB',
-        'MingLiU_HKSCS/MingLiU_HKSCS-ExtB',
-        'Miriam',
-        'Mongolian Baiti',
-        'MS Gothic/MS PGothic/MS UI Gothic',
-        'MS Mincho/MS PMincho',
-        'MV Boli',
-        'Narkisim',
-        'Nyala',
-        'Palatino Linotype',
-        'Plantagenet Cherokee',
-        'Raavi',
-        'Rod',
-        'Segoe Print',
-        'Segoe Script',
-        'Segoe UI',
-        'Shruti',
-        'SimHei',
-        'Simplified Arabic',
-        'SimSun-ExtB',
-        'Simsun/NSimsun',
-        'Sylfaen',
-        'Symbol',
-        'Tahoma',
-        'Times New Roman',
-        'Traditional Arabic',
-        'Trebuchet MS',
-        'Tunga',
-        'Verdana',
-        'Vrinda',
-        'Webdings',
-        'Wingdings'
-      ]
-    end
-    
-    # @since 1.0.0
-    def osx_fallback_fonts
-      [
-        'Al Bayan',
-        'American Typewriter',
-        'Andale Mono',
-        'Apple Casual',
-        'Apple Chancery',
-        'Apple Garamond',
-        'Apple Gothic',
-        'Apple LiGothic',
-        'Apple LiSung',
-        'Apple Myungjo',
-        'Apple Symbols',
-        '.AquaKana',
-        'Arial',
-        'Arial Hebrew',
-        'Ayuthaya',
-        'Baghdad',
-        'Baskerville',
-        'Beijing',
-        'BiauKai',
-        'Big Caslon',
-        'Brush Script',
-        'Chalkboard',
-        'Charcoal',
-        'Charcoal CY',
-        'Chicago',
-        'Cochin',
-        'Comic Sans',
-        'Cooper',
-        'Copperplate',
-        'Corsiva Hebrew',
-        'Courier',
-        'Courier New',
-        'DecoType Naskh',
-        'Devanagari',
-        'Didot',
-        'Eupheima UCAS',
-        'Fang Song',
-        'Futura',
-        'Gadget',
-        'Geeza Pro',
-        'Geezah',
-        'Geneva',
-        'Geneva CY',
-        'Georgia',
-        'Gill Sans',
-        'Gujarati',
-        'Gung Seoche',
-        'Gurmukhi',
-        'Hangangche',
-        'HeadlineA',
-        'Hei',
-        'Helvetica',
-        'Helvetica CY',
-        'Helvetica Neue',
-        'Herculanum',
-        'Hiragino Kaku Gothic Pro',
-        'Hiragino Kaku Gothic ProN',
-        'Hiragino Kaku Gothic Std',
-        'Hiragino Kaku Gothic StdN',
-        'Hiragino Maru Gothic Pro',
-        'Hiragino Maru Gothic ProN',
-        'Hiragino Mincho Pro',
-        'Hiragino Mincho ProN',
-        'Hoefler Text',
-        'Inai Mathi',
-        'Impact',
-        'Jung Gothic',
-        'Kai',
-        'Keyboard',
-        'Krungthep',
-        'KufiStandard GK',
-        'LastResort',
-        'LiHei Pro',
-        'LiSong Pro',
-        'Lucida Grande',
-        'Marker Felt',
-        'Menlo',
-        'Monaco',
-        'Monaco CY',
-        'Mshtakan',
-        'Nadeem',
-        'New Peninim',
-        'New York',
-        'NISC GB18030',
-        'Optima',
-        'Osaka',
-        'Palatino',
-        'Papyrus',
-        'PC Myungjo',
-        'Pilgiche',
-        'Plantagenet Cherokee',
-        'Raanana',
-        'Sand',
-        'Sathu',
-        'Segoe UI',
-        'Seoul',
-        'Shin Myungjo Neue',
-        'Silom',
-        'Skia',
-        'Song',
-        'ST FangSong',
-        'ST Heiti',
-        'ST Kaiti',
-        'ST Song',
-        'Symbol',
-        'Tae Graphic',
-        'Tahoma',
-        'Taipei',
-        'Techno',
-        'Textile',
-        'Thonburi',
-        'Times',
-        'Times CY',
-        'Times New Roman',
-        'Trebuchet MS',
-        'Verdana',
-        'Zapf Chancery',
-        'Zapf Dingbats',
-        'Zapfino'
-      ]
     end
 
   end # class
