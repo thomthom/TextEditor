@@ -620,28 +620,6 @@ module TT::Plugins::Editor3dText
       @font_names
     end
 
-    # TODO: Remove once OSX is wired up.
-    # @since 1.0.0
-    def get_osx_fonts
-      fc_list_locations = [
-        '/opt/X11/bin/fc-list',
-        '/usr/local/bin/fc-list',
-        '/usr/X11/bin/fc-list'
-      ]
-      fc_list = fc_list_locations.find { |location| File.exist?( location ) }
-      if fc_list.nil?
-        puts 'Warning: Could not find fc-list!'
-        return []
-      end
-      data = (`#{fc_list} : file family | grep \/Library\/Fonts`)
-      fonts = data.scan(/[^:]+[:]\s*(.*)/).flatten!
-      return [] if fonts.nil?
-      fonts.map! { |string| string.split(',') }.flatten! # Some lines include multiple fonts.
-      fonts.uniq!
-      fonts.sort! # (!) Not UTF-8 compatible! But better than nothing.
-      fonts
-    end
-
   end # class
   
   
