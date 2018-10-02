@@ -93,13 +93,13 @@ module TT::Plugins::Editor3dText
 
       # Default values.
       @text      = "Enter text"
-      @font      = 'Arial'
-      @style     = 'Normal'
-      @size      = 1.m
-      @filled    = true
-      @extruded  = true
-      @extrusion = 0.m
-      @align     = ALIGN_LEFT
+      @font      = read_pref('Font', 'Arial')
+      @style     = read_pref('Style', 'Normal')
+      @size      = read_pref('Size', 1.m).to_l
+      @filled    = read_pref('Filled', true)
+      @extruded  = read_pref('Extruded', true)
+      @extrusion = read_pref('Extrusion', 0.m).to_l
+      @align     = read_pref('Align', ALIGN_LEFT)
       @version   = CURRENT_VERSION
 
       # Load values from provided instance.
@@ -132,6 +132,13 @@ module TT::Plugins::Editor3dText
 
       if @origin
         view.model.commit_operation
+        write_pref('Font', @font)
+        write_pref('Style', @style)
+        write_pref('Size', @size.to_f)
+        write_pref('Filled', @filled)
+        write_pref('Extruded', @extruded)
+        write_pref('Extrusion', @extrusion.to_f)
+        write_pref('Align', @align)
       else
         view.model.abort_operation
       end
@@ -663,6 +670,21 @@ module TT::Plugins::Editor3dText
       # Try to get list of system fonts. Cache the list for later use.
       @font_names ||= TT::System.font_names
       @font_names
+    end
+
+    def read_pref(key, default)
+      Sketchup.read_default(PLUGIN_ID, key, default) || default
+    rescue SyntaxError => error
+      # NOTE(thomthom): It appear that this isn't getting caught. Instead SU
+      # print out the error and return nil. (Hence the `|| default` part above.)
+      # In case junk data is read in, recover and emit some indication that
+      # something went amiss.
+      puts error
+      return default
+    end
+
+    def write_pref(key, value)
+      Sketchup.write_default(PLUGIN_ID, key, value)
     end
 
   end # class
