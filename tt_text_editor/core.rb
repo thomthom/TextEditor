@@ -31,15 +31,15 @@ end
 if defined?( TT::Lib ) && TT::Lib.compatible?( '2.11.0', '3D Text Editor' )
 
 module TT::Plugins::Editor3dText
-  
-  
+
+
   ### MENU & TOOLBARS ### ------------------------------------------------------
-  
+
   unless file_loaded?( __FILE__ )
     # Menus
     m = UI.menu( 'Draw' )
     m.add_item( 'Editable 3d Text' ) { self.writer_tool }
-    
+
     # Context menu
     UI.add_context_menu_handler { |context_menu|
       instance = Sketchup.active_model.selection.find { |entity|
@@ -52,9 +52,9 @@ module TT::Plugins::Editor3dText
         Sketchup.active_model.select_tool( TextEditorTool.new( instance ) )
       } if instance
     }
-  end 
-  
-  
+  end
+
+
   ### MAIN SCRIPT ### ----------------------------------------------------------
 
   # @since 1.0.0
@@ -62,8 +62,8 @@ module TT::Plugins::Editor3dText
     self.warn_if_incompatible()
     Sketchup.active_model.select_tool( TextEditorTool.new )
   end
-  
-  
+
+
   # @since 1.0.0
   def self.warn_if_incompatible
     @warned ||= false
@@ -75,13 +75,15 @@ module TT::Plugins::Editor3dText
     end
   end
 
-  
+
   # @since 1.0.0
   class TextEditorTool
-  
+
     ALIGN_LEFT   = 'Left'.freeze
     ALIGN_CENTER = 'Center'.freeze
     ALIGN_RIGHT  = 'Right'.freeze
+
+    CURRENT_VERSION = 2
 
     # @since 1.0.0
     def initialize( instance = nil )
@@ -98,46 +100,45 @@ module TT::Plugins::Editor3dText
       @extruded  = true
       @extrusion = 0.m
       @align     = ALIGN_LEFT
-      
+      @version   = CURRENT_VERSION
+
       # Load values from provided instance.
       if instance
         @instance = instance
-        
+
         definition = TT::Instance.definition( @instance )
         read_properties( definition )
-        
-        origin = instance.transformation.origin
-        position = get_align_point( @instance, @align, origin )
-        vector = origin.vector_to( position )
-        @origin = origin.offset( vector.reverse )
-        
+
+        @origin = instance.transformation.origin
+
         instance.model.start_operation( 'Edit 3D Text' )
+        upgrade_text if @version < 2
         open_ui()
       end
     end
 
     # @param [Sketchup::View] view
-    # 
+    #
     # @since 1.0.0
     def resume( view )
       view.invalidate
     end
 
     # @param [Sketchup::View] view
-    # 
+    #
     # @since 1.0.0
     def deactivate( view )
       @window.close if @window && @window.visible?
-      
+
       if @origin
         view.model.commit_operation
       else
         view.model.abort_operation
       end
-      
+
       view.invalidate
     end
-    
+
     def onCancel( reason, view )
       puts "Cancel: #{reason}"
       @origin = nil
@@ -148,7 +149,7 @@ module TT::Plugins::Editor3dText
     # @param [Integer] x
     # @param [Integer] y
     # @param [Sketchup::View] view
-    # 
+    #
     # @since 1.0.0
     def onLButtonUp( flags, x, y, view )
       if @origin.nil? && @mouse_origin
@@ -156,11 +157,11 @@ module TT::Plugins::Editor3dText
       end
       view.invalidate
     end
-    
+
     # @param [Sketchup::PickHelper] pick_helper
     # @param [Sketchup::Face] face
     # @param [Sketchup::Entity] exclude_parent Group, Image or ComponentInstance
-    # 
+    #
     # @return [Geom::Transformation, Nil]
     # @since 1.0.0
     def get_best_face( pick_helper, exclude_parent = nil )
@@ -172,10 +173,10 @@ module TT::Plugins::Editor3dText
       }
       nil
     end
-    
+
     # @param [Sketchup::PickHelper] pick_helper
     # @param [Sketchup::Face] face
-    # 
+    #
     # @return [Geom::Transformation, Nil]
     # @since 1.0.0
     def get_face_transformation( pick_helper, face )
@@ -186,9 +187,9 @@ module TT::Plugins::Editor3dText
       }
       nil
     end
-    
+
     # @param [Array<Sketchup::Entity>] entities
-    # 
+    #
     # @return [Geom::Transformation, Nil]
     # @since 1.0.0
     def get_ray_transformation( entities )
@@ -204,18 +205,18 @@ module TT::Plugins::Editor3dText
     # @param [Integer] x
     # @param [Integer] y
     # @param [Sketchup::View] view
-    # 
+    #
     # @since 1.0.0
     def onMouseMove( flags, x, y, view )
       model = view.model
-      
+
       # Pick a point in the model where the text can be inserted under the
-      # cursor. Trying to find an entitiy to glue to.      
+      # cursor. Trying to find an entitiy to glue to.
       ph = view.pick_helper
       ph.do_pick( x, y )
       face = get_best_face( ph, @instance )
       face_transformation = get_face_transformation( ph, face )
-      
+
       ray = view.pickray( x, y )
       result = model.raytest( ray )
       if result
@@ -225,9 +226,9 @@ module TT::Plugins::Editor3dText
         point = Geom.intersect_line_plane( ray, plane )
         # (!) Error catch.
       end
-      
+
       @mouse_origin = point
-      
+
       # Create the text definition when needed.
       if @instance.nil?
         #@temp_origin = point
@@ -242,10 +243,10 @@ module TT::Plugins::Editor3dText
         update_3d_text( definition.entities )
         open_ui()
       end
-      
+
       # Position the text in the model. Glue to instance if possible.
       if @origin.nil?
-        position = get_align_point( @instance, @align, @mouse_origin )
+        position = @mouse_origin || ORIGIN
         # Align instance to face.
         if face
           view.tooltip = 'Align to face'
@@ -263,20 +264,20 @@ module TT::Plugins::Editor3dText
           @instance.transformation = tr
         end
       end
-      
+
       view.invalidate
     end
 
     # @param [Sketchup::View] view
-    # 
+    #
     # @since 1.0.0
     def draw( view )
       if @origin
         view.draw_points( [@origin], 10, 4, 'red' )
       end
 
-      if @align_pt
-        view.draw_points( [@align_pt], 10, 5, 'green' )
+      if @instance
+        view.draw_points( [@instance.transformation.origin], 10, 4, 'green' )
       end
     end
 
@@ -293,7 +294,7 @@ module TT::Plugins::Editor3dText
       }
       w = TT::GUI::ToolWindow.new( props )
       w.theme = TT::GUI::Window::THEME_GRAPHITE
-      
+
       # Deferred event - preventing call to a method to be called too often and
       # unless the value actually changes.
       eChange = TT::DeferredEvent.new { |value|
@@ -311,7 +312,7 @@ module TT::Plugins::Editor3dText
       txtInput.height = 140
       txtInput.add_event_handler( :textchange ) { |control|
         # (!) .dup is required to avoid BugSplat under SketchUp.
-        # 
+        #
         # That alone is not enough. It appear that TT::DeferredEvent will cause
         # a bugsplat. All though I don't understand why. Under Windows it works
         # fine. This project has had a lot of OSX issues... :/
@@ -322,14 +323,14 @@ module TT::Plugins::Editor3dText
         end
       }
       w.add_control( txtInput )
-      
+
       # Container for font properties
       container = TT::GUI::Container.new
       container.move( 5, 150 )
       container.width  = 300
       container.height = 75
       w.add_control( container )
-      
+
       # Font List
       lstFont = TT::GUI::Listbox.new()
       lstFont.name = :lst_font
@@ -341,12 +342,12 @@ module TT::Plugins::Editor3dText
       lstFont.move( 35, 0 )
       lstFont.width = 180
       container.add_control( lstFont )
-      
+
       lblFont = TT::GUI::Label.new( 'Font:', lstFont )
       lblFont.top = 0
       lblFont.right = 270
       container.add_control( lblFont )
-      
+
       # Font Style
       lstStyle = TT::GUI::Listbox.new( [
         'Normal',
@@ -364,7 +365,7 @@ module TT::Plugins::Editor3dText
       lstStyle.right = 0
       lstStyle.width = 80
       container.add_control( lstStyle )
-      
+
       # Text Alignment
       lstAlign = TT::GUI::Listbox.new( [
         ALIGN_LEFT,
@@ -382,7 +383,7 @@ module TT::Plugins::Editor3dText
       lstAlign.move( 35, 25 )
       lstAlign.width = 80
       container.add_control( lstAlign )
-      
+
       lblFont = TT::GUI::Label.new( 'Align:', lstAlign )
       lblFont.top = 25
       lblFont.right = 270
@@ -423,13 +424,13 @@ module TT::Plugins::Editor3dText
         end
       }
       container.add_control( txtExtrude )
-      
+
       # Form
       lblForm = TT::GUI::Label.new( 'Form:' )
       lblForm.top = 50
       lblForm.right = 270
       container.add_control( lblForm )
-      
+
       # Extrude
       chkExtrude = TT::GUI::Checkbox.new( 'Extrude:' )
       chkExtrude.name = :chk_extrude
@@ -441,7 +442,7 @@ module TT::Plugins::Editor3dText
         input_changed( nil )
       }
       container.add_control( chkExtrude )
-      
+
       # Filled
       chkFilled = TT::GUI::Checkbox.new( 'Filled' )
       chkFilled.name = :chk_filled
@@ -463,7 +464,7 @@ module TT::Plugins::Editor3dText
       btnClose.right = 5
       btnClose.bottom = 5
       w.add_control( btnClose )
-      
+
       # Hook up events.
       w.on_ready { |window|
         # Populate Font list.
@@ -491,19 +492,25 @@ module TT::Plugins::Editor3dText
       model.select_tool( nil )
     end
 
+    def to_length_or_default(string, default)
+      string.to_l
+    rescue ArgumentError
+      default.to_l
+    end
+
     # @since 1.0.0
     def input_changed( value )
       #puts "\ninput_changed"
 
       @text = value if value
-      
+
       w = @window
       #@font      = w[:lst_font].value
       #@style     = w[:lst_style].value
-      @size      = w[:txt_size].value.to_l
+      @size      = to_length_or_default(w[:txt_size].value, @size)
       @filled    = w[:chk_filled].checked
       @extruded  = w[:chk_extrude].checked
-      @extrusion = w[:txt_extrusion].value.to_l
+      @extrusion = to_length_or_default(w[:txt_extrusion].value, @extrusion)
 
       definition = TT::Instance.definition( @instance )
       definition.entities.clear!
@@ -515,66 +522,101 @@ module TT::Plugins::Editor3dText
       update_3d_text( definition.entities ) unless @text.strip.empty?
       write_properties( definition )
     end
-    
+
     # @since 1.0.0
     def update_3d_text( entities )
       #puts 'update_3d_text'
-      
+
       bold       = @style.include?( 'Bold' )
       italic     = @style.include?( 'Italic' )
-      
+
       align = case @align
         when ALIGN_LEFT   then TextAlignLeft
         when ALIGN_CENTER then TextAlignCenter
         when ALIGN_RIGHT  then TextAlignRight
       end # (?) Map to Hash?
-      
+
       extrusion  = ( @extruded ) ? @extrusion : 0.0
       tolerance = 0
       z = 0
-      
+
       entities.add_3d_text(
         @text,
         align, @font, bold, italic, @size,
         tolerance, z, @filled, extrusion
       )
-      
+
       # Align instance to Text Alignment.
       origin = @origin || @mouse_origin
       position = get_align_point( @instance, @align, origin )
-      
+
       @align_pt = position
-      
-      z_axis = @instance.transformation.zaxis
-      new_tr = Geom::Transformation.new( position, z_axis )
-      @instance.transformation = new_tr
+
+      align_text(@instance, @align)
     end
-    
-    # @since 1.0.0
-    def get_align_point( instance, alignment, origin )
+
+    def align_text( instance, alignment )
       definition = TT::Instance.definition( instance )
-      
+
       left_pt  = definition.bounds.corner(0) # (left front bottom)
       right_pt = definition.bounds.corner(1) # (right front bottom)
       mid_pt   = Geom::linear_combination( 0.5, left_pt, 0.5, right_pt )
-      
+
       if alignment == ALIGN_LEFT
-        vector = nil
+        vector = Geom::Vector3d.new(0, 0, 0)
       elsif alignment == ALIGN_CENTER
         vector = mid_pt.vector_to( left_pt )
       elsif alignment == ALIGN_RIGHT
         vector = right_pt.vector_to( left_pt )
       end
-      
+
+      return unless vector.valid?
+
+      tr = Geom::Transformation.new(vector)
+
+      entities = definition.entities
+      entities.transform_entities(tr, entities.to_a)
+    end
+
+    def upgrade_text
+      # puts 'Upgrading 3D Editable Text object...'
+      # Adjust the transformation from earlier versions so they don't shift
+      # when being edited by newer versions.
+      origin = @instance.transformation.origin
+      position = get_align_point( @instance, @align, origin )
+      vector = origin.vector_to( position )
+      if vector.valid?
+        @instance.transform!(vector.reverse)
+      end
+      @origin = @instance.transformation.origin
+      @version = CURRENT_VERSION
+    end
+
+    # @since 1.0.0
+    def get_align_point( instance, alignment, origin )
+      definition = TT::Instance.definition( instance )
+
+      left_pt  = definition.bounds.corner(0) # (left front bottom)
+      right_pt = definition.bounds.corner(1) # (right front bottom)
+      mid_pt   = Geom::linear_combination( 0.5, left_pt, 0.5, right_pt )
+
+      if alignment == ALIGN_LEFT
+        vector = Geom::Vector3d.new(0, 0, 0)
+      elsif alignment == ALIGN_CENTER
+        vector = mid_pt.vector_to( left_pt )
+      elsif alignment == ALIGN_RIGHT
+        vector = right_pt.vector_to( left_pt )
+      end
+
       position = origin.clone
-      if vector && vector.valid?
+      if vector.valid?
         vector.transform!( instance.transformation )
         position.offset!( vector )
       end
-      
+
       position
     end
-    
+
     # @since 1.0.0
     def write_properties( entity )
       entity.set_attribute( PLUGIN_ID, 'Text',      @text )
@@ -585,6 +627,7 @@ module TT::Plugins::Editor3dText
       entity.set_attribute( PLUGIN_ID, 'Extruded',  @extruded )
       entity.set_attribute( PLUGIN_ID, 'Extrusion', @extrusion )
       entity.set_attribute( PLUGIN_ID, 'Align',     @align )
+      entity.set_attribute( PLUGIN_ID, 'Version',   @version )
     end
 
     # @since 1.0.0
@@ -597,10 +640,12 @@ module TT::Plugins::Editor3dText
       @extruded  = entity.get_attribute( PLUGIN_ID, 'Extruded',  @extruded )
       @extrusion = entity.get_attribute( PLUGIN_ID, 'Extrusion', @extrusion ).to_l
       @align     = entity.get_attribute( PLUGIN_ID, 'Align',     @align )
+      @version   = entity.get_attribute( PLUGIN_ID, 'Version',   1 )
     end
-    
+
     # @since 1.0.0
     def default_font( availible_fonts )
+      # TODO(thomthom): Remember last used font.
       fallbacks = [
         'Arial',
         'Helvetica',
@@ -612,7 +657,7 @@ module TT::Plugins::Editor3dText
       # (!) Validate
       matches.first
     end
-    
+
     # @since 1.0.0
     def list_system_fonts
       # Try to get list of system fonts. Cache the list for later use.
@@ -621,10 +666,10 @@ module TT::Plugins::Editor3dText
     end
 
   end # class
-  
-  
+
+
   ### DEBUG ### ----------------------------------------------------------------
-  
+
   # @note Debug method to reload the plugin.
   #
   # @example
