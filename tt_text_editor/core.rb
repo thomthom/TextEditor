@@ -218,7 +218,7 @@ module TT::Plugins::Editor3dText
       model = view.model
 
       # Pick a point in the model where the text can be inserted under the
-      # cursor. Trying to find an entitiy to glue to.
+      # cursor. Trying to find an entity to glue to.
       ph = view.pick_helper
       ph.do_pick( x, y )
       face = get_best_face( ph, @instance )
